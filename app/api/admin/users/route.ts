@@ -23,9 +23,11 @@ export async function GET(req: NextRequest) {
     const { prisma } = await import('@/lib/prisma');
 
     let callerDept: string | null = null;
+    let callerGender: string | null = null;
     try {
       const callerProfile = await prisma.profile.findUnique({ where: { userId: email } });
       callerDept = callerProfile?.department || null;
+      callerGender = callerProfile?.gender || null;
     } catch (e: any) {
       console.error('[Admin Users] Caller profile fetch failed:', e?.message);
     }
@@ -36,7 +38,22 @@ export async function GET(req: NextRequest) {
     const filterDept = url.searchParams.get('department');
     const filterDomain = url.searchParams.get('domain');
     const filterAccountStatus = url.searchParams.get('accountStatus');
+    const filterGender = url.searchParams.get('gender');
     const search = url.searchParams.get('search') || '';
+
+    // Gender-personalized Pending list: by default a manager sees the requests
+    // that match their own gender (male managers → male pending, female managers
+    // → female pending). Accounts with no gender recorded are still shown in both
+    // views so nothing ever gets stuck hidden. An explicit `gender` param
+    // overrides the default so the admins can still browse/analyze everyone.
+    let effectivePendingGender: 'male' | 'female' | null = null;
+    if (filterDomain === 'pending') {
+      if (filterGender === 'male' || filterGender === 'female') {
+        effectivePendingGender = filterGender;
+      } else if (!filterGender) {
+        effectivePendingGender = callerGender === 'male' || callerGender === 'female' ? callerGender : null;
+      }
+    }
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
@@ -399,7 +416,8 @@ export async function GET(req: NextRequest) {
             !config.ownerEmails.includes(u.email?.toLowerCase()) &&
             !approvedSet.has((u.email || '').toLowerCase()) &&
             !u.isCR && !u.isACR &&
-            (!u.role || u.role === 'user' || u.role === 'external');
+            (!u.role || u.role === 'user' || u.role === 'external') &&
+            (!effectivePendingGender || !u.gender || u.gender === effectivePendingGender);
         }
         return true;
       });
@@ -434,6 +452,8 @@ export async function GET(req: NextRequest) {
       firebaseListFailed,
       firebaseListTruncated,
       canApprovePending: isApprover,
+      adminGender: callerGender,
+      effectiveGender: effectivePendingGender,
     });
   } catch (err: any) {
     console.error('[Admin Users] GET error:', err?.message, err?.stack);

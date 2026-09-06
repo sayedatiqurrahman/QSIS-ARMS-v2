@@ -67,6 +67,7 @@ export default function ProfileCard({
     const autoId = profile.universityId || extractUniversityId(email);
     setProfileForm({
       universityId: autoId,
+      gender: (profile as any).gender || '',
       name: profile.name || '',
       title: profile.title || '',
       shortForm: profile.shortForm || '',
@@ -185,6 +186,30 @@ export default function ProfileCard({
               <label className="text-[0.72rem] text-dark-text2 block mb-1"><i className="fas fa-envelope mr-1"></i>Public Email <span className="text-dark-text3">(shown on profile)</span></label>
               <input type="email" className="w-full px-2.5 py-2 rounded-lg border border-dark-border bg-dark-bg text-dark-text text-[0.82rem] outline-none focus:border-qsis transition-colors" placeholder="e.g. yourmail@gmail.com" value={profileForm.publicEmail} onChange={e => setProfileForm(p => ({ ...p, publicEmail: e.target.value }))} />
               <p className="text-[0.65rem] text-dark-text3 mt-0.5">Leave empty to use login email</p>
+            </div>
+            <div>
+              <label className="text-[0.72rem] text-dark-text2 block mb-1"><i className="fas fa-venus-mars mr-1"></i>Gender</label>
+              <div className="flex gap-2">
+                {[
+                  { value: 'male', label: 'Male', icon: 'fa-mars' },
+                  { value: 'female', label: 'Female', icon: 'fa-venus' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setProfileForm(p => ({ ...p, gender: opt.value }))}
+                    className={`flex-1 px-3 py-2 rounded-lg text-[0.78rem] font-semibold border cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                      profileForm.gender === opt.value
+                        ? opt.value === 'male'
+                          ? 'bg-blue-500/15 border-blue-500/40 text-blue-400'
+                          : 'bg-pink-500/15 border-pink-500/40 text-pink-400'
+                        : 'bg-dark-bg border-dark-border text-dark-text2 hover:border-qsis/30 hover:text-dark-text'
+                    }`}
+                  >
+                    <i className={`fas ${opt.icon}`}></i> {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -411,6 +436,15 @@ export default function ProfileCard({
               </span>
               <p className="text-[0.6rem] text-dark-text3 mt-0.5">Shown on public contributors profile</p>
             </div>
+            {(profile as any).gender && (
+              <div className="p-3 rounded-lg bg-dark-bg3 border border-dark-border">
+                <span className="text-[0.7rem] text-dark-text2 block mb-1">Gender</span>
+                <span className="text-[0.85rem] font-semibold capitalize flex items-center gap-1.5">
+                  <i className={`fas ${(profile as any).gender === 'male' ? 'fa-mars text-blue-400' : 'fa-venus text-pink-400'}`}></i>
+                  {(profile as any).gender}
+                </span>
+              </div>
+            )}
             {showStudentSection && profile.semester && (
               <div className="p-3 rounded-lg bg-dark-bg3 border border-dark-border">
                 <span className="text-[0.7rem] text-dark-text2 block mb-1">Semester</span>

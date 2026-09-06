@@ -296,7 +296,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (!existing) {
       // No onboarding yet — auto-create from profile (skip modal)
       setStoreOnboarding({
-        gender: 'male',
+        gender: (profile.gender === 'male' || profile.gender === 'female' ? profile.gender : 'male'),
         department: dept,
         semester: semLabel,
         fileView: 'all-prioritized',
@@ -1151,9 +1151,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             dismissOnboarding();
             setShowOnboarding(false);
             setOnboardingDone(true);
-            // Bidirectional sync: save department + semester to server profile
+            // Bidirectional sync: save department + semester + gender to server profile
             const semId = config.semesters.find(s => s.label === data.semester)?.id || data.semester;
-            updateProfile({ department: data.department, semester: semId });
+            updateProfile({ department: data.department, semester: semId, gender: data.gender });
           }}
           onClose={() => { dismissOnboarding(); setShowOnboarding(false); setOnboardingDone(true); }}
         />

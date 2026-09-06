@@ -56,6 +56,20 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
   const setActiveTab = setActiveTabProp ?? setInternalTab;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userSubTab, setUserSubTab] = useState<UserSubTab>('all');
+  // Pending-tab gender separation. Default (genderExplicit=false) = server shows
+  // the caller's own gender (male managers → male pending, female → female); the
+  // All / Male / Female filter buttons flip genderExplicit to let them browse
+  // and analyze the full queue.
+  const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
+  const [genderExplicit, setGenderExplicit] = useState(false);
+
+  // The `gender` query param to send for the Pending tab (undefined = server
+  // personalizes to the caller's gender). Always `all`/`male`/`female` once the
+  // user explicitly picks a filter.
+  const pendingGenderParam = useMemo(() => {
+    if (!genderExplicit) return undefined;
+    return genderFilter === 'all' ? 'all' : genderFilter;
+  }, [genderExplicit, genderFilter]);
 
   // Deep-linkable tabs: /admin?tab=users&sub=pending (the `tab` param is only
   // owned here when the panel is rendered standalone — when embedded inside the
@@ -70,8 +84,8 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
   const [loadingMore, setLoadingMore] = useState(false);
 
   // Per-sub-tab pagination state so tabs never share each other's lists/pages
-  const [userStates, setUserStates] = useState<Partial<Record<UserSubTab, { users: UserRecord[]; total: number; page: number; search: string; nextToken: string | null; firebaseListFailed: boolean; firebaseOnlyCount: number }>>>({});
-  const userState = userStates[userSubTab] ?? { users: [] as UserRecord[], total: 0, page: 1, search: '', nextToken: null as string | null, firebaseListFailed: false, firebaseOnlyCount: 0 };
+  const [userStates, setUserStates] = useState<Partial<Record<UserSubTab, { users: UserRecord[]; total: number; page: number; search: string; nextToken: string | null; firebaseListFailed: boolean; firebaseOnlyCount: number; adminGender: string | null; effectiveGender: string | null }>>>({});
+  const userState = userStates[userSubTab] ?? { users: [] as UserRecord[], total: 0, page: 1, search: '', nextToken: null as string | null, firebaseListFailed: false, firebaseOnlyCount: 0, adminGender: null as string | null, effectiveGender: null as string | null };
   const users = userState.users;
   const totalUsers = userState.total;
   const currentPage = userState.page;
@@ -79,11 +93,23 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
   const firebaseNextPageToken = userState.nextToken;
   const firebaseListFailed = userState.firebaseListFailed;
   const firebaseOnlyCount = userState.firebaseOnlyCount;
+  const effectiveGender = userState.effectiveGender;
+
+  // Button highlight: an explicit choice always wins; otherwise the server's
+  // effective (gender-personalised) filter is shown, falling back to All.
+  const activeGender = (genderExplicit || userSubTab !== 'pending')
+    ? genderFilter
+    : (effectiveGender === 'male' || effectiveGender === 'female' ? effectiveGender : 'all');
+  const handleGenderChange = (g: 'all' | 'male' | 'female') => {
+    if (g === activeGender && genderExplicit) return;
+    setGenderExplicit(true);
+    setGenderFilter(g);
+  };
 
   const patchUserState = (tab: UserSubTab, patch: Partial<typeof userState>) => {
     setUserStates(prev => ({
       ...prev,
-      [tab]: { users: [], total: 0, page: 1, search: '', nextToken: null, firebaseListFailed: false, firebaseOnlyCount: 0, ...prev[tab], ...patch },
+      [tab]: { users: [], total: 0, page: 1, search: '', nextToken: null, firebaseListFailed: false, firebaseOnlyCount: 0, adminGender: null, effectiveGender: null, ...prev[tab], ...patch },
     }));
   };
   const setCurrentPage = (page: number) => patchUserState(userSubTab, { page });
@@ -182,13 +208,14 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
       .catch(() => {});
   }, [hasAdminAccess]);
 
-  const loadUsers = useCallback((role?: string, search?: string, pageToken?: string, append = false, domain?: string, page?: number) => {
+  const loadUsers = useCallback((role?: string, search?: string, pageToken?: string, append = false, domain?: string, page?: number, gender?: string) => {
     const tab = tabFromArgs(role, domain);
     const params = new URLSearchParams();
     if (role && role !== 'all') params.set('role', role);
     if (search) params.set('search', search);
     if (pageToken) params.set('firebasePageToken', pageToken);
     if (domain && domain !== 'all') params.set('domain', domain);
+    if (gender && gender !== 'all') params.set('gender', gender);
     if (page) params.set('page', String(page));
     params.set('limit', '10');
     if (append) setLoadingMore(true);
@@ -196,7 +223,7 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
       .then(r => r.json())
       .then(data => {
         setUserStates(prev => {
-          const cur = prev[tab] ?? { users: [], total: 0, page: 1, search: '', nextToken: null };
+          const cur = prev[tab] ?? { users: [], total: 0, page: 1, search: '', nextToken: null, adminGender: null, effectiveGender: null };
           return {
             ...prev,
             [tab]: {
@@ -207,6 +234,8 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
               page: page || cur.page,
               firebaseListFailed: data.firebaseListFailed || false,
               firebaseOnlyCount: data.firebaseOnlyCount || 0,
+              adminGender: data.adminGender || null,
+              effectiveGender: data.effectiveGender || null,
             },
           };
         });
@@ -219,8 +248,8 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
     const domainFilter = userSubTab === 'student' ? 'student' : userSubTab === 'teacher' ? 'teacher' : userSubTab === 'external' ? 'external' : userSubTab === 'pending' ? 'pending' : undefined;
     const roleFilter = userSubTab === 'admin' ? 'admin' : userSubTab === 'manager' ? 'manager' : undefined;
     setCurrentPage(1);
-    loadUsers(roleFilter, searchQuery, undefined, false, domainFilter, 1);
-  }, [userSubTab, searchQuery, loadUsers]);
+    loadUsers(roleFilter, searchQuery, undefined, false, domainFilter, 1, userSubTab === 'pending' ? pendingGenderParam : undefined);
+  }, [userSubTab, searchQuery, pendingGenderParam, loadUsers]);
 
   useEffect(() => {
     if (!hasAdminAccess) return;
@@ -228,9 +257,9 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
       const domainFilter = userSubTab === 'student' ? 'student' : userSubTab === 'teacher' ? 'teacher' : userSubTab === 'external' ? 'external' : userSubTab === 'pending' ? 'pending' : undefined;
       const roleFilter = userSubTab === 'admin' ? 'admin' : userSubTab === 'manager' ? 'manager' : undefined;
       setCurrentPage(1);
-      loadUsers(roleFilter, searchQuery, undefined, false, domainFilter, 1);
+      loadUsers(roleFilter, searchQuery, undefined, false, domainFilter, 1, userSubTab === 'pending' ? pendingGenderParam : undefined);
     }
-  }, [hasAdminAccess, activeTab, userSubTab, searchQuery, loadUsers]);
+  }, [hasAdminAccess, activeTab, userSubTab, searchQuery, pendingGenderParam, loadUsers]);
 
   const handleBan = async (targetEmail: string, isBanned: boolean) => {
     const action = isBanned ? 'unban' : 'ban';
@@ -891,6 +920,9 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
           loadUsers={loadUsers}
           setCreateUserError={setCreateUserError}
           setCreateUserSuccess={setCreateUserSuccess}
+          activeGender={activeGender}
+          onGenderChange={handleGenderChange}
+          genderParam={userSubTab === 'pending' ? pendingGenderParam : undefined}
         />
       )}
 

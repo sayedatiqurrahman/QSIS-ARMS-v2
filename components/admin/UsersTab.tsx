@@ -58,9 +58,12 @@ interface UsersTabProps {
   handleLinkEmail?: (u: UserRecord) => void;
   handleApproveAll: () => void;
   approveAllLoading: boolean;
-  loadUsers: (role?: string, search?: string, pageToken?: string, append?: boolean, domain?: string, page?: number) => void;
+  loadUsers: (role?: string, search?: string, pageToken?: string, append?: boolean, domain?: string, page?: number, gender?: string) => void;
   setCreateUserError: (msg: string) => void;
   setCreateUserSuccess: (msg: string) => void;
+  activeGender?: 'all' | 'male' | 'female';
+  onGenderChange?: (g: 'all' | 'male' | 'female') => void;
+  genderParam?: string;
 }
 
 export default function UsersTab({
@@ -115,6 +118,9 @@ export default function UsersTab({
   handleEmail,
   handleBulkEmail,
   handleLinkEmail,
+  activeGender = 'all',
+  onGenderChange,
+  genderParam,
 }: UsersTabProps) {
   const totalPages = Math.ceil(totalUsers / PER_PAGE);
 
@@ -122,7 +128,6 @@ export default function UsersTab({
   // server fetch) is only updated after a short pause — typing no longer fires
   // a request on every keystroke.
   const [searchInput, setSearchInput] = useState(searchQuery);
-  const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
 
   useEffect(() => {
     setSearchInput(searchQuery);
@@ -149,16 +154,15 @@ export default function UsersTab({
       !config.ownerEmails.includes(u.email.toLowerCase()) &&
       !u.isCR &&
       !u.isACR &&
-      (!u.role || u.role === 'user' || u.role === 'external') &&
-      (genderFilter === 'all' || u.gender === genderFilter)
+      (!u.role || u.role === 'user' || u.role === 'external')
     );
-  }, [isPendingTab, users, genderFilter]);
+  }, [isPendingTab, users]);
 
   const goToPage = (page: number) => {
     const domainFilter = userSubTab === 'student' ? 'student' : userSubTab === 'teacher' ? 'teacher' : userSubTab === 'external' ? 'external' : userSubTab === 'pending' ? 'pending' : undefined;
     const roleFilter = userSubTab === 'admin' ? 'admin' : userSubTab === 'manager' ? 'manager' : undefined;
     setCurrentPage(page);
-    loadUsers(roleFilter, searchQuery, undefined, false, domainFilter, page);
+    loadUsers(roleFilter, searchQuery, undefined, false, domainFilter, page, userSubTab === 'pending' ? genderParam : undefined);
   };
 
   const pageNumbers = useMemo(() => {
@@ -213,17 +217,19 @@ export default function UsersTab({
       {userSubTab === 'pending' && (
         <div className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl p-3 mb-4 text-[0.72rem] text-yellow-300">
           <i className="fas fa-clock mr-1"></i>
-          Non-university accounts that haven&apos;t been approved yet — most requested access by submitting their student ID (and, optionally, a WhatsApp/Telegram number). Verify the ID, then <span className="font-semibold">Approve</span> to let them log in, or <span className="font-semibold">Reject</span> if it doesn&apos;t check out. Assigning a role (Student, Teacher, etc.) or making them CR/ACR also activates them and removes them from this list.
+          Non-university accounts that haven&apos;t been approved yet — most requested access by submitting their student ID (and, optionally, a WhatsApp/Telegram number). Verify the ID, then <span className="font-semibold">Approve</span> to let them log in, or <span className="font-semibold">Reject</span> if it doesn&apos;t check out. Assigning a role (Student, Teacher, etc.) or making them CR/ACR also activates them and removes them from this list. Newest requests appear first, and the list starts personalised to your own gender — use <span className="font-semibold">All / Male / Female</span> to watch and analyze the rest of the queue.
         </div>
       )}
 
-      {/* Gender filter for pending tab */}
+      {/* Gender filter for pending tab — defaults to the caller's own gender
+          (male managers → male pending, female → female); use the buttons to
+          browse or analyze the rest of the queue. */}
       {userSubTab === 'pending' && (
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 flex-wrap">
           <button
-            onClick={() => setGenderFilter('all')}
+            onClick={() => onGenderChange?.('all')}
             className={`px-3 py-1.5 rounded-lg text-[0.72rem] font-semibold cursor-pointer border transition-all ${
-              genderFilter === 'all'
+              activeGender === 'all'
                 ? 'bg-qsis text-white border-qsis'
                 : 'bg-dark-bg2 text-dark-text2 border-dark-border hover:text-dark-text hover:border-qsis/30'
             }`}
@@ -231,9 +237,9 @@ export default function UsersTab({
             <i className="fas fa-users mr-1"></i>All ({displayedUsers.length})
           </button>
           <button
-            onClick={() => setGenderFilter('male')}
+            onClick={() => onGenderChange?.('male')}
             className={`px-3 py-1.5 rounded-lg text-[0.72rem] font-semibold cursor-pointer border transition-all ${
-              genderFilter === 'male'
+              activeGender === 'male'
                 ? 'bg-blue-500 text-white border-blue-500'
                 : 'bg-dark-bg2 text-dark-text2 border-dark-border hover:text-blue-400 hover:border-blue-500/30'
             }`}
@@ -241,9 +247,9 @@ export default function UsersTab({
             <i className="fas fa-mars mr-1"></i>Male ({displayedUsers.filter(u => u.gender === 'male').length})
           </button>
           <button
-            onClick={() => setGenderFilter('female')}
+            onClick={() => onGenderChange?.('female')}
             className={`px-3 py-1.5 rounded-lg text-[0.72rem] font-semibold cursor-pointer border transition-all ${
-              genderFilter === 'female'
+              activeGender === 'female'
                 ? 'bg-pink-500 text-white border-pink-500'
                 : 'bg-dark-bg2 text-dark-text2 border-dark-border hover:text-pink-400 hover:border-pink-500/30'
             }`}
@@ -469,7 +475,7 @@ export default function UsersTab({
         <button
           onClick={() => {
             const domainFilter = userSubTab === 'student' ? 'student' : userSubTab === 'teacher' ? 'teacher' : userSubTab === 'external' ? 'external' : userSubTab === 'pending' ? 'pending' : undefined;
-            loadUsers(userSubTab === 'admin' ? 'admin' : userSubTab === 'manager' ? 'manager' : undefined, searchQuery, firebaseNextPageToken, true, domainFilter);
+            loadUsers(userSubTab === 'admin' ? 'admin' : userSubTab === 'manager' ? 'manager' : undefined, searchQuery, firebaseNextPageToken, true, domainFilter, undefined, userSubTab === 'pending' ? genderParam : undefined);
           }}
           disabled={loadingMore}
           className="mt-3 w-full py-2.5 rounded-xl border border-dark-border bg-dark-bg2 text-dark-text2 text-[0.78rem] font-semibold hover:bg-dark-bg3 hover:text-dark-text cursor-pointer transition-colors disabled:opacity-50"

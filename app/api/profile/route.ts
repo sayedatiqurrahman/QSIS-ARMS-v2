@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         select: {
           userId: true, email: true, name: true, title: true, shortForm: true, image: true,
           department: true, semester: true, section: true, session: true, batchId: true,
-          universityId: true, whatsapp: true, telegramId: true, isCR: true, isACR: true,
+          universityId: true, gender: true, whatsapp: true, telegramId: true, isCR: true, isACR: true,
           facebook: true, twitter: true, linkedin: true, website: true,
           company: true, companyUrl: true, publicEmail: true, profileType: true,
           hideWhatsapp: true, hideUniversityId: true, hideSemester: true, hideEmail: true, hideCompany: true,
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     const createData: Record<string, any> = { userId, email, role: roleForEmail(email) };
 
     const fields = [
-      'name', 'title', 'shortForm', 'department', 'isCR', 'universityId', 'whatsapp', 'telegramId', 'semester', 'section', 'image', 'batchId', 'session',
+      'name', 'title', 'shortForm', 'department', 'isCR', 'universityId', 'gender', 'whatsapp', 'telegramId', 'semester', 'section', 'image', 'batchId', 'session',
       'profileType',
       'facebook', 'twitter', 'linkedin', 'website', 'company', 'companyUrl', 'publicEmail',
       'hideWhatsapp', 'hideUniversityId', 'hideSemester', 'hideEmail', 'hideCompany',
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
         select: {
           userId: true, email: true, name: true, title: true, shortForm: true, image: true,
           department: true, semester: true, section: true, session: true, batchId: true,
-          universityId: true, whatsapp: true, telegramId: true, isCR: true, isACR: true,
+          universityId: true, gender: true, whatsapp: true, telegramId: true, isCR: true, isACR: true,
           facebook: true, twitter: true, linkedin: true, website: true,
           company: true, companyUrl: true, publicEmail: true, profileType: true,
           hideWhatsapp: true, hideUniversityId: true, hideSemester: true, hideEmail: true, hideCompany: true,

@@ -32,6 +32,7 @@ export interface Category {
 
 export interface Profile {
   universityId: string;
+  gender: string;
   name: string;
   title: string;
   shortForm: string;
@@ -74,7 +75,7 @@ export interface Profile {
 }
 
 export const defaultProfile: Profile = {
-  universityId: '', name: '', title: '', shortForm: '', department: '', section: '', isCR: false, isACR: false, email: '', whatsapp: '', telegramId: '', telegramChatId: '', semester: '', image: '',
+  universityId: '', gender: '', name: '', title: '', shortForm: '', department: '', section: '', isCR: false, isACR: false, email: '', whatsapp: '', telegramId: '', telegramChatId: '', semester: '', image: '',
   role: 'user',
   isBanned: false,
   githubLogin: '', githubToken: '', hasGithubToken: false, githubInstallationId: '', githubAvatar: '',
