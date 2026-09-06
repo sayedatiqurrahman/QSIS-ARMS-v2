@@ -247,7 +247,7 @@ export default function ProfileCard({
                 </div>
                 <div>
                   <label className="text-[0.72rem] text-dark-text2 block mb-1">University ID</label>
-                  <input type="text" className="w-full px-2.5 py-2 rounded-lg border border-dark-border bg-dark-bg text-dark-text text-[0.82rem] outline-none focus:border-qsis transition-colors" placeholder="e.g. Q233099 (auto from email)" value={profileForm.universityId} onChange={e => setProfileForm(p => ({ ...p, universityId: normalizeUniversityId(e.target.value) }))} />
+                  <input type="text" className="w-full px-2.5 py-2 rounded-lg border border-dark-border bg-dark-bg text-dark-text text-[0.82rem] outline-none focus:border-qsis transition-colors" placeholder="e.g. Q233099 (auto from email)" value={profileForm.universityId} onChange={e => setProfileForm(p => ({ ...p, universityId: e.target.value }))} onBlur={e => setProfileForm(p => ({ ...p, universityId: normalizeUniversityId(e.target.value) }))} />
                 </div>
                 <div>
                   <label className="text-[0.72rem] text-dark-text2 block mb-1"><i className="fas fa-envelope-open mr-1"></i>University Email</label>

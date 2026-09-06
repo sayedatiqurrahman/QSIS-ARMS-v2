@@ -168,7 +168,7 @@ export default function BatchesTab({ effectiveRole, profile }: { effectiveRole: 
                     {canManage && (
                       <div className="flex flex-wrap gap-2">
                         <input value={studentEmail} onChange={e => setStudentEmail(e.target.value)} placeholder="student@ugrad.iiuc.ac.bd" className="flex-1 min-w-[180px] px-2 py-1.5 rounded border border-dark-border bg-dark-bg text-dark-text text-[0.72rem] outline-none focus:border-qsis" />
-                        <input value={studentId} onChange={e => setStudentId(normalizeUniversityId(e.target.value))} placeholder="University ID (e.g. Q233099)" className="w-28 px-2 py-1.5 rounded border border-dark-border bg-dark-bg text-dark-text text-[0.72rem] outline-none focus:border-qsis" />
+                        <input value={studentId} onChange={e => setStudentId(e.target.value)} onBlur={e => setStudentId(normalizeUniversityId(e.target.value))} placeholder="University ID (e.g. Q233099)" className="w-28 px-2 py-1.5 rounded border border-dark-border bg-dark-bg text-dark-text text-[0.72rem] outline-none focus:border-qsis" />
                         <input value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="Name (optional)" className="w-32 px-2 py-1.5 rounded border border-dark-border bg-dark-bg text-dark-text text-[0.72rem] outline-none focus:border-qsis" />
                         <label className="flex items-center gap-1 text-[0.68rem] text-dark-text3 cursor-pointer">
                           <input type="checkbox" checked={isReAdmission} onChange={e => setIsReAdmission(e.target.checked)} className="rounded" />

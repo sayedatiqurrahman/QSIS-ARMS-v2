@@ -369,7 +369,7 @@ export default function StudioOrgDetailPage({ params }: { params: Promise<{ slug
                       </div>
                       <div>
                         <label className="text-[0.68rem] text-dark-text2 mb-1 block">University ID *</label>
-                        <input type="text" value={row.universityId} onChange={e => updateRow(i, 'universityId', normalizeUniversityId(e.target.value))}
+                        <input type="text" value={row.universityId} onChange={e => updateRow(i, 'universityId', e.target.value)} onBlur={e => updateRow(i, 'universityId', normalizeUniversityId(e.target.value))}
                           className="w-full px-3 py-2 rounded-lg border border-dark-border bg-dark-bg2 text-dark-text text-sm outline-none focus:border-qsis"
                           placeholder="Q233099" />
                       </div>

@@ -192,7 +192,8 @@ export default function SupportPage() {
           <input
             type="text"
             value={form.universityId}
-            onChange={e => update('universityId', normalizeUniversityId(e.target.value))}
+            onChange={e => update('universityId', e.target.value)}
+            onBlur={e => update('universityId', normalizeUniversityId(e.target.value))}
             placeholder="e.g. eb263013"
             className="w-full px-4 py-2.5 rounded-xl bg-dark-bg3 border border-dark-border text-dark-text text-sm placeholder:text-dark-text2/50 focus:outline-none focus:border-qsis transition"
           />

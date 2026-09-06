@@ -23,6 +23,7 @@ export default function AccessGate({ email: initialEmail = '', status, onClose, 
   const [gender, setGender] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [idError, setIdError] = useState('');
   const [savedId, setSavedId] = useState('');
 
   const statusPending = status === 'pending';
@@ -31,11 +32,17 @@ export default function AccessGate({ email: initialEmail = '', status, onClose, 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const trimmedId = id.trim();
-    if (!trimmedId || trimmedId.length < 3) {
+    const rawId = id.trim();
+    const hasBadChars = /[\s_-]/.test(rawId);
+    if (!rawId || rawId.length < 3) {
       setError('Please enter your student/university ID so a manager can verify you.');
       return;
     }
+    if (hasBadChars) {
+      setError('Enter your ID as one block, e.g. Q233099 — no dashes, spaces or underscores.');
+      return;
+    }
+    const trimmedId = normalizeUniversityId(rawId);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gateEmail)) {
       setError('Please enter a valid email address.');
       return;
@@ -63,6 +70,18 @@ export default function AccessGate({ email: initialEmail = '', status, onClose, 
       setError('Network error. Please try again.');
     }
     setLoading(false);
+  };
+
+  const handleIdBlur = () => {
+    const raw = id.trim();
+    if (!raw) { setIdError(''); return; }
+    if (/[\s_-]/.test(raw)) {
+      setIdError('Enter your ID as one block, e.g. Q233099 — no dashes, spaces or underscores.');
+      return;
+    }
+    const clean = normalizeUniversityId(raw);
+    if (clean !== id) setId(clean);
+    setIdError('');
   };
 
   const close = () => {
@@ -123,10 +142,16 @@ export default function AccessGate({ email: initialEmail = '', status, onClose, 
               <input
                 type="text"
                 value={id}
-                onChange={e => setId(normalizeUniversityId(e.target.value))}
+                onChange={e => setId(e.target.value)}
+                onBlur={handleIdBlur}
                 placeholder="Student / University ID (e.g. C211086)"
                 className="w-full px-3 py-2 rounded-lg border border-dark-border bg-dark-bg text-dark-text text-[0.82rem] outline-none focus:border-qsis transition-colors"
               />
+              {idError && (
+                <p className="px-2 text-red-400 text-[0.68rem]">
+                  <i className="fas fa-exclamation-circle mr-1"></i>{idError}
+                </p>
+              )}
               <input
                 type="text"
                 value={contact}

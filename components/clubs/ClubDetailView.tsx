@@ -1726,8 +1726,10 @@ export default function ClubDetailView({ params }: { params: Promise<{ slug: str
             <div key={key}>
               <label className="text-sm text-dark-text2 font-semibold mb-1 block">{label}{required && <span className="text-red-400"> *</span>}</label>
               <input type="text" value={certDraft[key]} onChange={e => {
-                const v = key === 'universityId' ? normalizeUniversityId(e.target.value) : e.target.value;
+                const v = e.target.value;
                 setCertDraft(d => ({ ...d, [key]: v }));
+              }} onBlur={e => {
+                if (key === 'universityId') setCertDraft(d => ({ ...d, universityId: normalizeUniversityId(e.target.value) }));
               }}
                 className="w-full px-3 py-2.5 rounded-lg border border-dark-border bg-dark-bg text-dark-text text-sm outline-none focus:border-qsis transition" />
             </div>
