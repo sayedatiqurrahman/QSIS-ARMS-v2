@@ -29,7 +29,7 @@ import BlogTab from '@/components/admin/BlogTab';
 import ClubsTab from '@/components/admin/ClubsTab';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { filterAdminNav } from '@/components/admin/nav';
-import { useUrlTab } from '@/lib/use-url-tabs';
+import { useUrlTab, getUrlParam, writeUrlParams } from '@/lib/use-url-tabs';
 import { useUserAccess } from '@/lib/useUserAccess';
 import { resolveDepartment, getDepartmentDisplayName } from '@/lib/departments';
 
@@ -56,12 +56,18 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
   const setActiveTab = setActiveTabProp ?? setInternalTab;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userSubTab, setUserSubTab] = useState<UserSubTab>('all');
+  // One-shot deep link: /admin?tab=users&sub=pending&q=<email> (sent in the
+  // Telegram pending-account notification) opens the Pending list with that
+  // exact account pre-filtered in the search box. Freeze the value so later
+  // renders never re-read a cleaned-up URL.
+  const [deepLinkQ] = useState(() => (typeof window !== 'undefined' ? getUrlParam('q') : ''));
   // Pending-tab gender separation. Default (genderExplicit=false) = server shows
   // the caller's own gender (male managers → male pending, female → female); the
   // All / Male / Female filter buttons flip genderExplicit to let them browse
-  // and analyze the full queue.
+  // and analyze the full queue. A direct `q=` link neutralises the personalised
+  // default so the flagged account is never filtered out of view.
   const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
-  const [genderExplicit, setGenderExplicit] = useState(false);
+  const [genderExplicit, setGenderExplicit] = useState(!!deepLinkQ);
 
   // The `gender` query param to send for the Pending tab (undefined = server
   // personalizes to the caller's gender). Always `all`/`male`/`female` once the
@@ -84,7 +90,11 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
   const [loadingMore, setLoadingMore] = useState(false);
 
   // Per-sub-tab pagination state so tabs never share each other's lists/pages
-  const [userStates, setUserStates] = useState<Partial<Record<UserSubTab, { users: UserRecord[]; total: number; page: number; search: string; nextToken: string | null; firebaseListFailed: boolean; firebaseOnlyCount: number; adminGender: string | null; effectiveGender: string | null }>>>({});
+  const [userStates, setUserStates] = useState<Partial<Record<UserSubTab, { users: UserRecord[]; total: number; page: number; search: string; nextToken: string | null; firebaseListFailed: boolean; firebaseOnlyCount: number; adminGender: string | null; effectiveGender: string | null }>>>(() =>
+    deepLinkQ
+      ? { pending: { users: [], total: 0, page: 1, search: deepLinkQ, nextToken: null, firebaseListFailed: false, firebaseOnlyCount: 0, adminGender: null, effectiveGender: null } }
+      : {}
+  );
   const userState = userStates[userSubTab] ?? { users: [] as UserRecord[], total: 0, page: 1, search: '', nextToken: null as string | null, firebaseListFailed: false, firebaseOnlyCount: 0, adminGender: null as string | null, effectiveGender: null as string | null };
   const users = userState.users;
   const totalUsers = userState.total;
@@ -185,6 +195,11 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
     [isAdmin, isManager, isOwner, effectiveRole, profile?.isCR, canManageFacultyDepts, hasCoursePerms, has]
   );
 
+  // Consume the one-shot ?q=… deep-link param once it has been applied.
+  useEffect(() => {
+    if (deepLinkQ) writeUrlParams({ q: null });
+  }, [deepLinkQ]);
+
   useEffect(() => {
     if (!hasAdminAccess) return;
     fetch('/api/activity?limit=50')
@@ -215,7 +230,7 @@ export default function AdminPanelView({ activeTab: activeTabProp, setActiveTab:
     if (search) params.set('search', search);
     if (pageToken) params.set('firebasePageToken', pageToken);
     if (domain && domain !== 'all') params.set('domain', domain);
-    if (gender && gender !== 'all') params.set('gender', gender);
+    if (gender) params.set('gender', gender);
     if (page) params.set('page', String(page));
     params.set('limit', '10');
     if (append) setLoadingMore(true);

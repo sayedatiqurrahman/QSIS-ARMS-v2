@@ -382,6 +382,10 @@ export async function notifyAdminsPendingAccount(email: string, name?: string, u
 
     const displayName = name || email.split('@')[0];
     const genderLabel = gender === 'male' ? 'Male' : gender === 'female' ? 'Female' : 'Not specified';
+    // Deep link straight into the Pending list with this account pre-filtered,
+    // so the reviewer lands on exactly this request (tab=users&sub=pending&q=email).
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://iiuc-arms.eu.cc';
+    const reviewLink = `${baseUrl}/admin?tab=users&sub=pending&q=${encodeURIComponent(email)}`;
     const message = [
       `🆕 <b>New Access Request</b>`,
       ``,
@@ -393,7 +397,7 @@ export async function notifyAdminsPendingAccount(email: string, name?: string, u
       ``,
       `A non-university account requested approval with their ID. Verify it, then approve or reject them.`,
       ``,
-      `<a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://iiuc-arms.eu.cc'}/dashboard">→ Review in Admin Panel</a>`,
+      `<a href="${reviewLink}">→ Review in Admin Panel (Pending)</a>`,
     ].join('\n');
 
     // Send to individual admins/managers
