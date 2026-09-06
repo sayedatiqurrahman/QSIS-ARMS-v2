@@ -39,7 +39,7 @@ export default function AccessGate({ email: initialEmail = '', status, onClose, 
       return;
     }
     if (hasBadChars) {
-      setError('Enter your ID as one block, e.g. Q233099 — no dashes, spaces or underscores.');
+      setIdError('Enter your ID as one block, e.g. Q233099 — no dashes, spaces or underscores.');
       return;
     }
     const trimmedId = normalizeUniversityId(rawId);
@@ -142,7 +142,16 @@ export default function AccessGate({ email: initialEmail = '', status, onClose, 
               <input
                 type="text"
                 value={id}
-                onChange={e => setId(e.target.value)}
+                onChange={e => {
+                  const v = e.target.value;
+                  setId(v);
+                  const raw = v.trim();
+                  if (raw && /[\s_-]/.test(raw)) {
+                    setIdError('Enter your ID as one block, e.g. Q233099 — no dashes, spaces or underscores.');
+                  } else {
+                    setIdError('');
+                  }
+                }}
                 onBlur={handleIdBlur}
                 placeholder="Student / University ID (e.g. C211086)"
                 className="w-full px-3 py-2 rounded-lg border border-dark-border bg-dark-bg text-dark-text text-[0.82rem] outline-none focus:border-qsis transition-colors"
